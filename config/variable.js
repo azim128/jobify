@@ -22,6 +22,18 @@ const variables = {
 
   // OpenAI Configuration
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+
+  // Email Configuration
+  smtp: {
+    server: process.env.SMTP_SERVER,
+    port: process.env.SMTP_PORT,
+    username: process.env.SMTP_USERNAME,
+    password: process.env.SMTP_PASSWORD,
+    fromEmail: process.env.SMTP_FROM_EMAIL,
+    fromName: process.env.SMTP_FROM_NAME || "Jobify Admin",
+  },
+
+  FRONTEND_URL: process.env.FRONTEND_URL,
 };
 
 export default variables;

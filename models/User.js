@@ -39,11 +39,17 @@ const userSchema = new mongoose.Schema(
         type: Boolean,
         default: true,
       },
+      uploadFiles: {
+        type: Boolean,
+        default: true,
+      },
     },
     isActive: {
       type: Boolean,
       default: true,
     },
+    passwordResetToken: String,
+    passwordResetExpires: Date,
   },
   { timestamps: true }
 );

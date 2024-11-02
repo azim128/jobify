@@ -2,49 +2,28 @@ import mongoose from "mongoose";
 
 const JobSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: [true, "Job title is required"],
-    },
-    description: {
-      type: String,
-      required: [true, "Job description is required"],
-    },
-    requirements: {
-      type: String,
-      required: [true, "Requirements are required"],
-    },
-    location: {
-      type: String,
-      required: [true, "Job location is required"],
-    },
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    requirements: { type: [String], required: true }, // Array of strings
+    responsibilities: { type: [String], required: true },
     salaryRange: {
       min: { type: Number, required: true },
       max: { type: Number, required: true },
     },
+    location: { type: String, required: true },
+    type: { type: String, required: true },
+    level: { type: String, required: true },
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
-      required: [true, "Company ID is required"],
+      required: true,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "Admin ID is required"],
+      required: true,
     },
-    postedDate: {
-      type: Date,
-      default: Date.now,
-    },
-    status: {
-      type: String,
-      enum: ["open", "closed", "paused"],
-      default: "open",
-    },
-    isAIgenerated: {
-      type: Boolean,
-      default: false,
-    },
+    descriptionFile: { type: String },
   },
   { timestamps: true }
 );

@@ -7,7 +7,9 @@ import aiRoutes from "./routes/aiRoutes.js";
 import companyRoutes from "./routes/companyRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import superAdminRoutes from "./routes/superAdminRoutes.js";
 import cors from "cors";
+import { limiter } from "./middleware/rateLimiterMiddleware.js";
 
 const app = express();
 
@@ -16,8 +18,10 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(limiter);
 
 // routes
+app.use("/api/v1/super-admin", superAdminRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/ai", aiRoutes);
 app.use("/api/v1/company", companyRoutes);

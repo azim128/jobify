@@ -1,11 +1,14 @@
 import express from "express";
-import { createFirstSuperAdmin } from "../controllers/authController.js";
+import {
+  login,
+  forgotPassword,
+  resetPassword,
+} from "../controllers/authController.js";
 
 const router = express.Router();
 
-// Route to create first super admin
-router.post("/create-first-super-admin", createFirstSuperAdmin);
-
-// ... other auth routes ...
+router.post("/login", login);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:resetToken", resetPassword);
 
 export default router;
