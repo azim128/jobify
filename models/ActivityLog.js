@@ -9,7 +9,7 @@ const ActivityLogSchema = new mongoose.Schema(
     },
     resource: {
       type: String,
-      enum: ["user", "company", "job"],
+      enum: ["User", "Company", "Job"],
       required: true,
     },
     resourceId: {

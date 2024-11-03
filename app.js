@@ -6,10 +6,10 @@ import authRoutes from "./routes/authRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import companyRoutes from "./routes/companyRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
-import uploadRoutes from "./routes/uploadRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import cors from "cors";
 import { limiter } from "./middleware/rateLimiterMiddleware.js";
+import activityLogRoutes from "./routes/activityLogRoutes.js";
 
 const app = express();
 
@@ -26,7 +26,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/ai", aiRoutes);
 app.use("/api/v1/company", companyRoutes);
 app.use("/api/v1/job", jobRoutes);
-app.use("/api/v1/upload", uploadRoutes);
+
+app.use("/api/v1/activity-logs", activityLogRoutes);
 
 // health check
 app.get("/health", (req, res) => {

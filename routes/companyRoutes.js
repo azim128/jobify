@@ -11,11 +11,13 @@ import {
   checkPermission,
 } from "../middleware/authMiddleware.js";
 import upload from "../utils/multerConfig.js";
+import { logActivity } from "../middleware/activityLogMiddleware.js";
 
 const router = express.Router();
 
 router.use(authenticateUser);
 router.use(checkPermission("manageCompanies"));
+router.use(logActivity("company"));
 
 // Routes with file upload middleware
 router.post("/", upload.single("logo"), createCompany);

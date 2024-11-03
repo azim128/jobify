@@ -21,29 +21,22 @@ export const generateJobDescription = async (req, res) => {
       );
     }
 
-    // Construct the prompt
+    // Construct the prompt with explicit formatting instructions
     const prompt = `Generate a detailed job description for a ${experienceLevel} ${title} position in the ${industry} industry.
-    
-    Include the following sections:
-    1. About the Role
-    2. Key Responsibilities
-    3. Required Qualifications
-    4. Preferred Skills
-    5. Benefits and Perks
 
-    Additional details:
-    - Location: ${location || "Remote"}
-    - Employment Type: ${employmentType || "Full-time"}
-    - Required Skills: ${skills.join(", ")}
-
-    Format the response in JSON with the following structure:
+    Return ONLY a valid JSON object with the following structure, nothing else:
     {
       "description": "main job description",
       "responsibilities": ["array of responsibilities"],
       "requirements": ["array of requirements"],
       "preferredSkills": ["array of preferred skills"],
       "benefits": ["array of benefits"]
-    }`;
+    }
+
+    Include these details in the appropriate sections:
+    - Location: ${location || "Remote"}
+    - Employment Type: ${employmentType || "Full-time"}
+    - Required Skills: ${skills.join(", ")}`;
 
     // Call OpenAI API with error handling
     let completion;
@@ -53,7 +46,7 @@ export const generateJobDescription = async (req, res) => {
           {
             role: "system",
             content:
-              "You are a professional HR assistant skilled in writing job descriptions.",
+              "You are a professional HR assistant skilled in writing job descriptions. You must respond with ONLY valid JSON, no additional text or formatting.",
           },
           {
             role: "user",
@@ -63,6 +56,7 @@ export const generateJobDescription = async (req, res) => {
         model: "gpt-3.5-turbo",
         temperature: 0.7,
         max_tokens: 1000,
+        response_format: { type: "json_object" }, // Force JSON response format
       });
     } catch (apiError) {
       console.error("OpenAI API Error:", apiError);
@@ -79,7 +73,7 @@ export const generateJobDescription = async (req, res) => {
         );
       }
 
-      throw apiError; // Re-throw for general error handling
+      throw apiError;
     }
 
     // Validate API response
@@ -87,15 +81,23 @@ export const generateJobDescription = async (req, res) => {
       return errorResponse(res, 500, "Invalid response from AI service");
     }
 
-    // Parse the response with error handling
+    // Parse the response with better error handling
     let generatedContent;
     try {
-      generatedContent = JSON.parse(
-        completion.choices[0].message.content.trim()
-      );
+      const responseText = completion.choices[0].message.content.trim();
+
+      // Attempt to clean the response if it contains markdown code blocks
+      const jsonString = responseText.replace(/```json\n?|\n?```/g, "").trim();
+
+      generatedContent = JSON.parse(jsonString);
     } catch (parseError) {
       console.error("JSON Parse Error:", parseError);
-      return errorResponse(res, 500, "Error parsing AI response");
+      console.error("Raw response:", completion.choices[0].message.content);
+      return errorResponse(
+        res,
+        500,
+        "Error parsing AI response. Please try again."
+      );
     }
 
     // Validate the parsed content structure
@@ -106,6 +108,7 @@ export const generateJobDescription = async (req, res) => {
       "preferredSkills",
       "benefits",
     ];
+
     const missingFields = requiredFields.filter(
       (field) => !generatedContent[field]
     );
@@ -120,6 +123,27 @@ export const generateJobDescription = async (req, res) => {
       );
     }
 
+    // Validate that arrays are actually arrays
+    const arrayFields = [
+      "responsibilities",
+      "requirements",
+      "preferredSkills",
+      "benefits",
+    ];
+    const invalidArrays = arrayFields.filter(
+      (field) => !Array.isArray(generatedContent[field])
+    );
+
+    if (invalidArrays.length > 0) {
+      return errorResponse(
+        res,
+        500,
+        `Invalid data types in response. Expected arrays for: ${invalidArrays.join(
+          ", "
+        )}`
+      );
+    }
+
     return successResponse(res, 200, "Job description generated successfully", {
       jobDescription: generatedContent,
       usage: completion.usage,
@@ -127,7 +151,6 @@ export const generateJobDescription = async (req, res) => {
   } catch (error) {
     console.error("AI Generation Error:", error);
 
-    // Provide more specific error messages based on the error type
     if (error.code === "ECONNREFUSED") {
       return errorResponse(
         res,

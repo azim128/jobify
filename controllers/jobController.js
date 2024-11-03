@@ -3,6 +3,7 @@ import Company from "../models/Company.js";
 import FileUpload from "../models/FileUpload.js";
 import { successResponse, errorResponse } from "../helpers/responseHelper.js";
 import cloudinary from "../config/cloudinaryConfig.js";
+import validateRequiredFields from "../utils/validateRequiredFields.js";
 
 // Create job
 export const createJob = async (req, res) => {
@@ -12,23 +13,50 @@ export const createJob = async (req, res) => {
       description,
       requirements,
       responsibilities,
-      salaryRange, // Make sure you destructure this correctly
+      salaryRange,
       location,
       type,
       level,
       companyId,
     } = req.body;
 
+    const requiredFields = [
+      "title",
+      "description",
+      "companyId",
+      "type",
+      "level",
+    ];
+
+    // Parse salary range if it's sent as string
+    let parsedSalaryRange = salaryRange;
+    if (typeof salaryRange === "string") {
+      try {
+        parsedSalaryRange = JSON.parse(salaryRange);
+      } catch (error) {
+        return errorResponse(res, 400, "Invalid salary range format");
+      }
+    }
+
     // Validate required fields
-    if (
-      !title ||
-      !description ||
-      !companyId ||
-      !salaryRange ||
-      salaryRange.min === undefined ||
-      salaryRange.max === undefined
-    ) {
-      return errorResponse(res, 400, "Please provide all required fields");
+    // Check for missing required fields
+    const errorMessage = validateRequiredFields(req.body, requiredFields);
+    if (errorMessage) {
+      return errorResponse(res, 400, errorMessage);
+    }
+
+    // Validate salary range
+    if (!parsedSalaryRange?.min || !parsedSalaryRange?.max) {
+      return errorResponse(res, 400, "Please provide valid salary range");
+    }
+
+    // Validate salary range values
+    if (parsedSalaryRange.min > parsedSalaryRange.max) {
+      return errorResponse(
+        res,
+        400,
+        "Minimum salary cannot be greater than maximum salary"
+      );
     }
 
     // Check if company exists
@@ -37,16 +65,34 @@ export const createJob = async (req, res) => {
       return errorResponse(res, 404, "Company not found");
     }
 
+    // Parse arrays if they're sent as strings
+    let parsedRequirements = requirements;
+    let parsedResponsibilities = responsibilities;
+
+    try {
+      if (typeof requirements === "string") {
+        parsedRequirements = JSON.parse(requirements);
+      }
+      if (typeof responsibilities === "string") {
+        parsedResponsibilities = JSON.parse(responsibilities);
+      }
+    } catch (error) {
+      return errorResponse(
+        res,
+        400,
+        "Invalid format for requirements or responsibilities"
+      );
+    }
+
     // Create job
     const job = await Job.create({
       title,
       description,
-      requirements: requirements || [],
-      responsibilities: responsibilities || [],
+      requirements: parsedRequirements || [],
+      responsibilities: parsedResponsibilities || [],
       salaryRange: {
-        // Ensure you are correctly setting this
-        min: salaryRange.min,
-        max: salaryRange.max,
+        min: parsedSalaryRange.min,
+        max: parsedSalaryRange.max,
       },
       location,
       type,
@@ -55,7 +101,39 @@ export const createJob = async (req, res) => {
       createdBy: req.user._id,
     });
 
-    // Other code to handle file uploads and responses
+    // Handle file upload if exists
+    if (req.file) {
+      try {
+        // Upload to cloudinary
+        const result = await cloudinary.v2.uploader.upload(req.file.path, {
+          folder: "job-descriptions",
+          resource_type: "raw",
+        });
+
+        // Create file upload record
+        await FileUpload.create({
+          fileType: "jobDescription",
+          url: result.secure_url,
+          uploadedBy: req.user._id,
+          job: job._id,
+        });
+
+        // Update job with file URL
+        job.descriptionFile = result.secure_url;
+        await job.save();
+      } catch (error) {
+        console.error("File upload failed:", error);
+        // Continue without file if upload fails
+      }
+    }
+
+    // Populate company and creator details
+    await job.populate([
+      { path: "company", select: "name location logo" },
+      { path: "createdBy", select: "name email" },
+    ]);
+
+    successResponse(res, 201, "Job created successfully", job);
   } catch (error) {
     errorResponse(res, 500, error.message);
   }
@@ -143,7 +221,7 @@ export const updateJob = async (req, res) => {
       description,
       requirements,
       responsibilities,
-      salary,
+      salaryRange,
       location,
       type,
       level,
@@ -157,25 +235,68 @@ export const updateJob = async (req, res) => {
       return errorResponse(res, 404, "Job not found");
     }
 
-    // Update basic fields
+    // Parse salary range if it's sent as string
+    let parsedSalaryRange = salaryRange;
+    if (typeof salaryRange === "string") {
+      try {
+        parsedSalaryRange = JSON.parse(salaryRange);
+      } catch (error) {
+        return errorResponse(res, 400, "Invalid salary range format");
+      }
+    }
+
+    // Parse arrays if they're sent as strings
+    let parsedRequirements = requirements;
+    let parsedResponsibilities = responsibilities;
+
+    try {
+      if (typeof requirements === "string") {
+        parsedRequirements = JSON.parse(requirements);
+      }
+      if (typeof responsibilities === "string") {
+        parsedResponsibilities = JSON.parse(responsibilities);
+      }
+    } catch (error) {
+      return errorResponse(
+        res,
+        400,
+        "Invalid format for requirements or responsibilities"
+      );
+    }
+
+    // Prepare updates object
     const updates = {
       title: title || job.title,
       description: description || job.description,
-      requirements: requirements || job.requirements,
-      responsibilities: responsibilities || job.responsibilities,
-      salary: salary || job.salary,
+      requirements: parsedRequirements || job.requirements,
+      responsibilities: parsedResponsibilities || job.responsibilities,
       location: location || job.location,
       type: type || job.type,
       level: level || job.level,
     };
 
-    // If new description file exists, upload to cloudinary
+    // Update salary range if provided
+    if (parsedSalaryRange && parsedSalaryRange.min && parsedSalaryRange.max) {
+      if (parsedSalaryRange.min > parsedSalaryRange.max) {
+        return errorResponse(
+          res,
+          400,
+          "Minimum salary cannot be greater than maximum salary"
+        );
+      }
+      updates.salaryRange = {
+        min: parsedSalaryRange.min,
+        max: parsedSalaryRange.max,
+      };
+    }
+
+    // Handle file upload if exists
     if (req.file) {
       try {
         // Upload to cloudinary
         const result = await cloudinary.v2.uploader.upload(req.file.path, {
           folder: "job-descriptions",
-          resource_type: "raw",
+          resource_type: "raw", // This allows any file type
         });
 
         // Create file upload record
@@ -188,11 +309,13 @@ export const updateJob = async (req, res) => {
 
         // Update job with new file URL
         updates.descriptionFile = result.secure_url;
-      } catch (error) {
-        console.error("File upload failed:", error);
+      } catch (uploadError) {
+        console.error("File upload failed:", uploadError);
+        return errorResponse(res, 500, "File upload failed");
       }
     }
 
+    // Update job
     const updatedJob = await Job.findByIdAndUpdate(jobId, updates, {
       new: true,
       runValidators: true,
@@ -201,9 +324,14 @@ export const updateJob = async (req, res) => {
       { path: "createdBy", select: "name email" },
     ]);
 
+    if (!updatedJob) {
+      return errorResponse(res, 404, "Job not found");
+    }
+
     successResponse(res, 200, "Job updated successfully", updatedJob);
   } catch (error) {
-    errorResponse(res, 500, error.message);
+    console.error("Job update error:", error);
+    errorResponse(res, 500, error.message || "Error updating job");
   }
 };
 

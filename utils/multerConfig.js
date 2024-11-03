@@ -10,14 +10,34 @@ const storage = multer.diskStorage({
 
 // File filter
 const fileFilter = (req, file, cb) => {
-  const filetypes = /jpeg|jpg|png|gif/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+  if (file.fieldname === "logo") {
+    // For logo uploads - allow only images
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = filetypes.test(file.mimetype);
 
-  if (extname && mimetype) {
-    cb(null, true);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed for logo!"));
+    }
+  } else if (file.fieldname === "descriptionFile") {
+    // For job description files - allow PDF
+    const filetypes = /pdf/;
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = file.mimetype === "application/pdf";
+
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF files are allowed for job descriptions!"));
+    }
   } else {
-    cb(new Error("Only image files are allowed!"));
+    cb(new Error("Invalid field name"));
   }
 };
 
