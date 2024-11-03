@@ -28,6 +28,8 @@
 
 A robust job portal API built with Node.js, Express, and MongoDB, featuring role-based access control, AI-powered job descriptions, and comprehensive activity logging.
 
+- [postman documentation](https://documenter.getpostman.com/view/31589139/2sAY4xB2qG)
+
 ## Table of Contents
 
 - [Entities](#entities)
