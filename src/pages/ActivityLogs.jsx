@@ -47,6 +47,40 @@ const ActivityLogs = () => {
     setFilters((prev) => ({ ...prev, limit: newLimit, page: 1 }));
   };
 
+  const handleRetry = () => {
+    dispatch(getActivityLogsAsync({ token, ...filters }));
+  };
+
+  const renderError = () => (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+      <div className="mb-4">
+        <svg
+          className="h-12 w-12 text-red-500 mx-auto"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
+      </div>
+      <h3 className="text-lg font-semibold text-red-800 mb-2">
+        Error Loading Activity Logs
+      </h3>
+      <p className="text-red-600 mb-4">{error}</p>
+      <button
+        onClick={handleRetry}
+        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+      >
+        Try Again
+      </button>
+    </div>
+  );
+
   const renderPagination = () => {
     if (!pagination) return null;
 
@@ -134,26 +168,61 @@ const ActivityLogs = () => {
     );
   };
 
+  const renderContent = () => {
+    if (loading && isInitialLoad) {
+      return <ActivityLogSkeleton />;
+    }
+
+    if (error) {
+      return renderError();
+    }
+
+    if (!activityLogs || activityLogs.length === 0) {
+      return (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+          <div className="mb-4">
+            <svg
+              className="h-12 w-12 text-gray-400 mx-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No Activity Logs Found
+          </h3>
+          <p className="text-gray-600">
+            There are no activity logs matching your current filters.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className={loading ? "opacity-60 pointer-events-none" : ""}>
+          <ActivityLogTable logs={activityLogs} />
+        </div>
+        {renderPagination()}
+      </>
+    );
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Activity Logs</h1>
-
       <ActivityLogFilters
         filters={filters}
         onFilterChange={handleFilterChange}
       />
-
-      <div className={loading && !isInitialLoad ? "opacity-60" : ""}>
-        {loading && isInitialLoad ? (
-          <ActivityLogSkeleton />
-        ) : (
-          <ActivityLogTable logs={activityLogs || []} />
-        )}
-
-        {(!loading || !isInitialLoad) &&
-          activityLogs?.length > 0 &&
-          renderPagination()}
-      </div>
+      {renderContent()}
     </div>
   );
 };

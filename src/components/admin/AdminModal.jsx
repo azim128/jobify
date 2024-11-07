@@ -81,15 +81,25 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
       {isSubmitting && <LoadingOverlay message="Saving admin..." />}
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold mb-4">
-          {admin ? "Update Admin" : "Create Admin"}
-        </h2>
+      <div className="bg-white rounded-lg w-full max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold">
+            {admin ? "Update Admin" : "Create Admin"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Name {!admin && <span className="text-red-500">*</span>}
             </label>
             <input
@@ -98,12 +108,12 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
               required={!admin}
               value={formData.name}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:text-base"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email {!admin && <span className="text-red-500">*</span>}
             </label>
             <input
@@ -112,12 +122,12 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
               required={!admin}
               value={formData.email}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:text-base"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Password {!admin && <span className="text-red-500">*</span>}
             </label>
             <input
@@ -126,7 +136,7 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
               required={!admin}
               value={formData.password}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:text-base"
             />
           </div>
 
@@ -134,7 +144,7 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Permissions
             </label>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {PERMISSIONS.map(({ key, label, alwaysDisabled }) => (
                 <div key={key} className="flex items-center">
                   <input
@@ -143,7 +153,7 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
                     checked={formData.permissions[key]}
                     onChange={() => handlePermissionChange(key)}
                     disabled={alwaysDisabled}
-                    className={`h-4 w-4 rounded border-gray-300 ${
+                    className={`h-5 w-5 rounded border-gray-300 ${
                       alwaysDisabled
                         ? "text-gray-400 cursor-not-allowed"
                         : "text-blue-600 cursor-pointer"
@@ -151,7 +161,7 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
                   />
                   <label
                     htmlFor={key}
-                    className={`ml-2 ${
+                    className={`ml-3 text-sm sm:text-base ${
                       alwaysDisabled ? "text-gray-400" : "text-gray-700"
                     }`}
                   >
@@ -162,17 +172,17 @@ const AdminModal = ({ admin, onSubmit, onClose, isSubmitting }) => {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 mt-6">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm sm:text-base"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base"
             >
               {admin ? "Update" : "Create"}
             </button>

@@ -22,6 +22,17 @@ const ManageAdmins = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,26 +91,53 @@ const ManageAdmins = () => {
     const totalPages = Math.ceil(admins.length / itemsPerPage);
     const pages = [];
 
-    for (let i = 1; i <= totalPages; i++) {
+    // For mobile, show limited page numbers
+    const getVisiblePages = () => {
+      if (isMobileView) {
+        if (totalPages <= 3)
+          return Array.from({ length: totalPages }, (_, i) => i + 1);
+        if (currentPage <= 2) return [1, 2, 3, "...", totalPages];
+        if (currentPage >= totalPages - 1)
+          return [1, "...", totalPages - 2, totalPages - 1, totalPages];
+        return [
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages,
+        ];
+      }
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    };
+
+    getVisiblePages().forEach((page) => {
       pages.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`px-3 py-1 mx-1 rounded ${
-            currentPage === i
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 hover:bg-gray-300"
-          }`}
-        >
-          {i}
-        </button>
+        page === "..." ? (
+          <span key={`ellipsis-${page}`} className="px-3 py-1">
+            ...
+          </span>
+        ) : (
+          <button
+            key={page}
+            onClick={() => handlePageChange(page)}
+            className={`px-3 py-1 mx-1 rounded ${
+              currentPage === page
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            {page}
+          </button>
+        )
       );
-    }
+    });
 
     return (
-      <div className="flex items-center justify-between mt-6">
-        <div className="flex items-center space-x-2">
-          <span>Show:</span>
+      <div className="flex flex-col sm:flex-row items-center justify-between mt-6 space-y-4 sm:space-y-0">
+        <div className="flex flex-wrap items-center space-x-2">
+          <span className="whitespace-nowrap">Show:</span>
           <select
             value={itemsPerPage}
             onChange={handleItemsPerPageChange}
@@ -111,11 +149,13 @@ const ManageAdmins = () => {
               </option>
             ))}
           </select>
-          <span>entries</span>
-          <span className="ml-4">Total: {admins.length} admins</span>
+          <span className="whitespace-nowrap">entries</span>
+          <span className="ml-4 whitespace-nowrap">
+            Total: {admins.length} admins
+          </span>
         </div>
 
-        <div className="flex items-center">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
@@ -123,7 +163,7 @@ const ManageAdmins = () => {
           >
             Previous
           </button>
-          <div className="mx-2">{pages}</div>
+          <div className="flex flex-wrap justify-center gap-1">{pages}</div>
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
@@ -139,7 +179,7 @@ const ManageAdmins = () => {
   const renderAdminList = () => {
     if (loading && isInitialLoad) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {[...Array(4)].map((_, index) => (
             <AdminSkeleton key={index} />
           ))}
@@ -163,12 +203,11 @@ const ManageAdmins = () => {
       );
     }
 
-    // Paginate admins
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedAdmins = admins.slice(startIndex, startIndex + itemsPerPage);
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {paginatedAdmins.map((admin) => (
           <AdminCard
             key={admin._id}
@@ -182,19 +221,19 @@ const ManageAdmins = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Manage Admins</h1>
-        <div className="space-x-4">
+        <div className="flex flex-wrap  gap-3">
           <Link
             to="/activity-logs"
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm sm:text-base whitespace-nowrap"
           >
             View Activity Logs
           </Link>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base whitespace-nowrap"
           >
             Add Admin
           </button>
@@ -206,12 +245,13 @@ const ManageAdmins = () => {
         {renderAdminList()}
       </div>
 
-      {/* Pagination - always visible if there are admins */}
+      {/* Pagination */}
       {(!loading || !isInitialLoad) &&
         admins &&
         admins.length > 0 &&
         renderPagination()}
 
+      {/* Modal */}
       {isModalOpen && (
         <AdminModal
           admin={selectedAdmin}
@@ -220,7 +260,7 @@ const ManageAdmins = () => {
             setIsModalOpen(false);
             setSelectedAdmin(null);
           }}
-          isSubmitting={false} // Don't show loading in modal
+          isSubmitting={false}
         />
       )}
     </div>
